@@ -1,34 +1,58 @@
 <? 
     include('conexao.php'); 
+    include('Upload.php'); 
     $id               = $_GET['id'];
     $acao             = $_GET['acao'];
     if($acao == "editar"){
-        $sql          = mysql_query("SELECT * FROM conteudo WHERE id = '$id'");
+        $sql          = mysql_query("SELECT * FROM midia WHERE id = '$id'");
         $resultado    = mysql_fetch_array($sql);
-        $titulo       = $resultado['titulo'];
-        $texto        = $resultado['texto'];
-        $selecsessao  = $resultado['id_sessao'];
+        $idsessao     = $resultado['id_sessao'];
+        $idconteudo   = $resultado['id_conteudo'];
+        $img          = $resultado['img'];
+        $tipo         = $resultado['tipo'];
     }
     if($_POST['novo']){
-        $titulo = $_POST['titulo'];
-        $texto  = $_POST['texto'];
-        $sessao = $_POST['sessao'];
-        $sql    = mysql_query("INSERT INTO conteudo (titulo, texto, id_sessao) VALUES ('$titulo', '$texto', '$sessao')");
-        header('Location: conteudo.php');
+        $arquivo      = SobeImagem($_FILES['img']['name'], $_FILES['img']['tmp_name'], "imagens/");
+        $id_sessao    = $_POST['idsessao'];
+        $id_conteudo  = $_POST['idconteudo'];
+        $tipo         = $_POST['tipo'];
+        $data_gerado  = date("Y-m-d");   
+
+        $sql          = mysql_query("INSERT INTO midia (id_sessao, id_conteudo, img, tipo, data_gerado) VALUES ('$id_sessao', '$id_conteudo', '$arquivo', '$tipo', '$data_gerado')");
+        header('Location: midia.php');
         exit();
     }
     if($acao == "excluir"){
-        $sql = mysql_query("DELETE FROM conteudo where id = '$id'");
-        header('Location: conteudo.php');
-        exit();
+        $sel    = mysql_query("SELECT * FROM midia WHERE id = '$id'");
+        $result = mysql_fetch_array($sel);
+        $remove = RemoveImagem("imagens/".$result['img']);
+        if($remove){
+            $sql = mysql_query("DELETE FROM midia WHERE id = '$id'");
+            header('Location: midia.php');
+            exit();
+        }else{
+            echo "viado";
+        } 
     }
     if($_POST['atualizar']){
-        $titulo = $_POST['titulo'];
-        $texto  = $_POST['texto'];
-        $sessao = $_POST['sessao'];
-        $sql  = mysql_query("UPDATE conteudo SET titulo = '$titulo', texto = '$texto', id_sessao = '$sessao' WHERE id = '$id'");
-        header('Location: conteudo.php');
-        exit();
+        if($_FILES['img'] == ""){
+            $id_sessao    = $_POST['idsessao'];
+            $id_conteudo  = $_POST['idconteudo'];
+            $sql  = mysql_query("UPDATE midia SET id_sessao = '$idsessao', id_conteudo = '$id_conteudo', tipo = '$tipo' WHERE id = '$id'");
+            header('Location: midia.php');
+            exit();
+        }
+        if($_FILES['img'] != ""){
+            $id_sessao    = $_POST['idsessao'];
+            $id_conteudo  = $_POST['idconteudo'];
+            $sel    = mysql_query("SELECT * FROM midia WHERE id = '$id'");
+            $result = mysql_fetch_array($sel);
+            $remove = RemoveImagem("imagens/".$result['img']);
+            $arquivo      = SobeImagem($_FILES['img']['name'], $_FILES['img']['tmp_name'], "imagens/");
+            $sql  = mysql_query("UPDATE midia SET id_sessao = '$idsessao', id_conteudo = '$id_conteudo', img = '$arquivo', tipo = '$tipo' WHERE id = '$id'");
+            header('Location: midia.php');
+            exit();
+        }
     }
 ?>
 <!DOCTYPE html>
@@ -81,16 +105,16 @@
     <div id="page-wrapper">
         <div class="row">
             <div class="col-lg-12">
-                <h1 class="page-header">Conteúdo</h1>
+                <h1 class="page-header">Midia</h1>
             </div>
         </div>
-        <a href="conteudo.php?acao=novo"><input type="buttom" class="btn btn-success pull-right" value="Novo"></a><br><br>
+        <a href="midia.php?acao=novo"><input type="buttom" class="btn btn-success pull-right" value="Novo"></a><br><br>
         <!-- /.row -->
         <div class="row">
             <div class="col-lg-12">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Conteúdo
+                            Midia
                         </div>
                         <!-- /.panel-heading -->
                         <div class="panel-body">
@@ -100,15 +124,14 @@
                                         <tr>
                                             <th>Id</th>
                                             <th>Sessão</th>
-                                            <th>Titulo</th>
-                                            <th>Texto</th>
+                                            <th>Tipo</th>
                                             <th>Data</th>
                                             <th width="10px">Opções</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?
-                                        $sql = mysql_query("SELECT * FROM conteudo");
+                                        $sql = mysql_query("SELECT * FROM midia");
                                         if($sql > 0){
                                             while($resultado = mysql_fetch_array($sql)){
                                                 $idsesao   = $resultado['id_sessao'];
@@ -118,10 +141,9 @@
                                                     <tr>
                                                         <td>'.$resultado['id'].'</td>
                                                         <td>'.$sessao['nome'].'</td>
-                                                        <td>'.$resultado['titulo'].'</td>
-                                                        <td>'.$resultado['texto'].'</td>
+                                                        <td>'.$resultado['tipo'].'</td>
                                                         <td>'.$resultado['data_gerado'].'</td>
-                                                        <td><center><a href="conteudo.php?acao=editar&id='.$resultado['id'].'"><i class="fa fa-pencil fa-wd"></i></a> <a href="conteudo.php?acao=excluir&id='.$resultado['id'].'"><i class="fa fa-remove fa-wd"></i></a></center></td>
+                                                        <td><center><a href="midia.php?acao=editar&id='.$resultado['id'].'"><i class="fa fa-pencil fa-wd"></i></a> <a href="midia.php?acao=excluir&id='.$resultado['id'].'"><i class="fa fa-remove fa-wd"></i></a></center></td>
                                                     </tr>';
                                             }
                                         }
@@ -140,7 +162,7 @@
         <? if($acao == "editar"){ ?>
         <div class="row">
             <div class="col-lg-12">
-                <form method="POST" action="" name="formu">
+                <form method="POST" action="" name="formu" enctype="multipart/form-data">
                 <div class="row">
                     <div class="col-lg-12">
                         <h1>Editar</h1>
@@ -148,30 +170,42 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-lg-4">
+                    <div class="col-lg-3">
                         <label>Sessão</label>
-                        <select class="form-control" name="sessao">
+                        <select class="form-control" name="idsessao">
                             <?
                                 $selec = mysql_query("SELECT * FROM sessao");
                                 while($recebe = mysql_fetch_array($selec)){
-                                    echo'<option '.(($selecsessao == $recebe['id'])?'selected="selected"':'').' value="'.$recebe['id'].'">'.$recebe['nome'].'</option>';
+                                    echo'<option '.(($idsessao == $recebe['id'])?'selected="selected"':'').' value="'.$recebe['id'].'">'.$recebe['nome'].'</option>';
                                 }
                             ?>
                         </select>
                     </div>
-                    <div class="col-lg-4">
-                        <label>Título</label>
-                        <input type="text" class="form-control" name="titulo" value="<?=$titulo;?>">
+                    <div class="col-lg-3">
+                        <label>Conteudo</label>
+                        <select class="form-control" name="idconteudo">
+                            <?
+                                $selecao = mysql_query("SELECT * FROM conteudo");
+                                while($receber = mysql_fetch_array($selecao)){
+                                    echo'<option '.(($idconteudo == $receber['id'])?'selected="selected"':'').' value="'.$receber['id'].'">'.$receber['titulo'].'</option>';
+                                }
+                            ?>
+                        </select>
                     </div>
-                    <div class="col-lg-4">
-                        <label>Texto</label>
-                        <textarea name="texto" class="form-control"><?=$texto?></textarea>
+                    <div class="col-lg-3">
+                        <label>Tipo</label>
+                        <input type="text" class="form-control" name="tipo" value="<?=$tipo;?>">
                     </div>
-                </div>
+                    <div class="col-lg-3">
+                        <label>Imagem</label><br>
+                        <img src="imagens/<?=$img?>" width="235px">
+                        <input type="file" name="img" class="form-control">
+                    </div>
+                </div><br>
                 <div class="row">
                     <div class="col-lg-3">
                         <input type="submit" class="btn btn-success" value="Atualizar" name="atualizar">
-                    </div>
+                    </div><br><br>
                 </div>
             </form>
             </div>
@@ -186,11 +220,11 @@
                         <hr>
                     </div>
                 </div>
-                <form method="POST" action="" name="form">
+                <form method="POST" action="" name="form" enctype="multipart/form-data">
                 <div class="row">
-                    <div class="col-lg-4">
+                    <div class="col-lg-3">
                         <label>Sessão</label>
-                        <select class="form-control" name="sessao">
+                        <select class="form-control" name="idsessao">
                             <?
                                 $selec = mysql_query("SELECT * FROM sessao");
                                 while($recebe = mysql_fetch_array($selec)){
@@ -199,20 +233,34 @@
                             ?>
                         </select>
                     </div>
-                    <div class="col-lg-4">
-                        <label>Título</label>
-                        <input type="text" class="form-control" name="titulo" value="<?=$nome;?>">
+                    <div class="col-lg-3">
+                        <label>Conteudo</label>
+                        <select class="form-control" name="idconteudo">
+                            <?
+                                $selec = mysql_query("SELECT * FROM conteudo");
+                                while($recebe = mysql_fetch_array($selec)){
+                                    echo'<option value="'.$recebe['id'].'">'.$recebe['titulo'].'</option>';
+                                }
+                            ?>
+                        </select>
                     </div>
-                    <div class="col-lg-4">
-                        <label>Texto</label>
-                        <textarea name="texto" class="form-control"></textarea>
+                    <div class="col-lg-3">
+                        <label>Tipo</label>
+                        <select class="form-control" name="tipo">
+                            <option value="foto">Foto</option>
+                            <option value="video">Vídeo</option>
+                        </select>
                     </div>
-                </div>
+                    <div class="col-lg-3">
+                        <label>Imagem</label>
+                        <input type="file" name="img" class="form-control">
+                    </div>
+                </div><br>
                 <div class="row">
                     <div class="col-lg-3">
                         <input type="submit" class="btn btn-success" value="Adicionar" name="novo">
                     </div>
-                </div>
+                </div><br><br>
                 </form>
             </div>
         </div>

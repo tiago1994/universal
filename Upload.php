@@ -18,5 +18,16 @@ function SobeImagem($nomeimg, $nomeimg_temp, $pasta){
 	
 	
 }
+function RemoveImagem($nomeimg){
+	if(file_exists($nomeimg)){
+		if(unlink($nomeimg)){
+			return true;
+		}else{
+			return false;
+		}
+	}else{
+		return false;
+	}
+}
 
 ?>
